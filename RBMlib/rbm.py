@@ -15,6 +15,9 @@ class RBM( object ):
         self.nhid = nhid
         self.hbias = hbias
         self.W = W
+        self.pre_dW = 0.0
+        self.pre_dh = 0.0
+        self.pre_dv = 0.0
 
         if self.W is None:
             lowb = -4 * np.sqrt( 6. / (nvis+nhid) )
@@ -100,13 +103,19 @@ class RBM( object ):
         return( [dW, dh, dv, monitor] )
  
 
-    def UpdateParams( self, v0samp, k=1, lr=0.01, persistent=None ):
-        """Update params( W, hbias, vbias )"""
+    def UpdateParams( self, v0samp, k=1, lr=0.01, persistent=None, mom=0.9 ):
+        """Update params( W, hbias, vbias ) with standard SGD"""
         dW, dh, dv, mon = self.GetGrad( v0samp, k=k, persistent=persistent )
 
-        self.W = self.W + lr * dW
-        self.hbias = self.hbias + lr * dh
-        self.vbias = self.vbias + lr * dv
+        # momentum
+        self.pre_dW = lr * dW + mom * self.pre_dW
+        self.pre_dh = lr * dh + mom * self.pre_dh
+        self.pre_dv = lr * dv + mom * self.pre_dv
+        
+        self.W += self.pre_dW
+        self.hbias += self.pre_dh
+        self.vbias += self.pre_dv
+
         Fnorm = np.sum(dW**2) + np.sum(dh**2) + np.sum(dv**2)
 
 
